@@ -1,7 +1,7 @@
 package udb_plugin_library
 
 import (
-	"github.com/benwiebe/udb_plugin_library/types"
+	"github.com/benwiebe/udb-plugin-library/types"
 )
 
 type UdbPlugin interface {
