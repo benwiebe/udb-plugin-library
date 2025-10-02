@@ -5,20 +5,20 @@ import (
 )
 
 type UdbPlugin interface {
-	getPluginType() types.PluginType
-	configure(config types.PluginConfig) error
+	GetPluginType() types.PluginType
+	Configure(config types.PluginConfig) error
 }
 
 type UdbBoardPlugin interface {
 	UdbPlugin
-	getBoardMap() map[string]types.Board
-	getAllBoards() []types.Board
+	GetBoardMap() map[string]types.Board
+	GetAllBoards() []types.Board
 }
 
 type UdbDatasourcePlugin interface {
 	UdbPlugin
-	getDatasourceMap() map[string]types.Datasource[any]
-	getAllDatasources() []types.Datasource[any]
+	GetDatasourceMap() map[string]types.Datasource[any]
+	GetAllDatasources() []types.Datasource[any]
 }
 
 type UdbCombinedPlugin interface {
