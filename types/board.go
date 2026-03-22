@@ -29,6 +29,10 @@ type Board[T any] interface {
 	GetName() string
 	GetSupportedDimensions() []BoardDimensions
 	GetType() BoardType
+	// GetDatasourceType returns the type identifier of the datasource this board requires.
+	// Type identifiers follow the convention "author/plugin-name/type-name",
+	// e.g. "benwiebe/nhl-plugin/game-data".
+	GetDatasourceType() string
 	Init(datasource Datasource[T]) error
 }
 
