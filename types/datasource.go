@@ -1,8 +1,8 @@
 package types
 
-// Datasource is a interface for a datasource that will be provided by a plugin
+// Datasource is an interface for a datasource that will be provided by a plugin
 type Datasource[T any] interface {
-	getId() string
-	getName() string
-	getData() T
+	GetId() string
+	GetName() string
+	GetData() T
 }

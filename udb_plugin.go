@@ -6,6 +6,8 @@ import (
 
 // UdbPlugin is an interface for all plugins' common methods.
 type UdbPlugin interface {
+	GetId() string
+	GetName() string
 	GetPluginType() types.PluginType
 	Configure(config types.PluginConfig) error
 }
