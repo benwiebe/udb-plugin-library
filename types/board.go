@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"image"
 	"time"
 )
@@ -33,20 +34,20 @@ type Board[T any] interface {
 	// Type identifiers follow the convention "author/plugin-name/type-name",
 	// e.g. "benwiebe/nhl-plugin/game-data".
 	GetDatasourceType() string
-	Init(datasource Datasource[T]) error
+	Init(config json.RawMessage, datasource Datasource[T]) error
 }
 
 // StaticBoard is an interface for a board which displays a static image
 type StaticBoard[T any] interface {
 	Board[T]
-	Render() image.Image
+	Render(dimensions BoardDimensions) image.Image
 }
 
 // AnimatedBoard is an interface for a board which displays a pre-rendered animated image.
 // If a board needs to update while it's being shown, then it should implement DynamicBoard instead.
 type AnimatedBoard[T any] interface {
 	Board[T]
-	Render() Animation
+	Render(dimensions BoardDimensions) Animation
 }
 
 // DynamicBoard is an interface for a board which displays content that may change while the board
@@ -54,7 +55,7 @@ type AnimatedBoard[T any] interface {
 // AnimatedBoard instead.
 type DynamicBoard[T any] interface {
 	Board[T]
-	Render() AnimationFrame
+	Render(dimensions BoardDimensions) AnimationFrame
 }
 
 // Animation is an array of AnimationFrame that can be played on a board
