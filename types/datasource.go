@@ -1,5 +1,7 @@
 package types
 
+import "context"
+
 // Datasource is an interface for a datasource that will be provided by a plugin.
 type Datasource[T any] interface {
 	GetId() string
@@ -10,4 +12,12 @@ type Datasource[T any] interface {
 	// match the datasource's GetType() for them to be compatible.
 	GetType() string
 	GetData() T
+	// Start is called once at startup. Datasources that poll external sources should
+	// start their background goroutine here and stop it when ctx is cancelled.
+	Start(ctx context.Context) error
+	// DataChanged returns a channel that receives a value whenever the datasource's data
+	// has changed and an immediate re-render is warranted. Return nil if the datasource
+	// does not support push notifications; a nil channel blocks forever in a select,
+	// which is the correct no-op behaviour.
+	DataChanged() <-chan struct{}
 }

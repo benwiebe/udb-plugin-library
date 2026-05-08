@@ -34,20 +34,23 @@ type Board[T any] interface {
 	// Type identifiers follow the convention "author/plugin-name/type-name",
 	// e.g. "benwiebe/nhl-plugin/game-data".
 	GetDatasourceType() string
-	Init(config json.RawMessage, datasource Datasource[T]) error
+	// Init is called once at startup. config is the board's JSON config block, datasource is the
+	// wired datasource (may be nil), and dimensions are the display dimensions for the run.
+	// Boards should use dimensions to pre-compute layout and cache any derived values here.
+	Init(config json.RawMessage, datasource Datasource[T], dimensions BoardDimensions) error
 }
 
 // StaticBoard is an interface for a board which displays a static image
 type StaticBoard[T any] interface {
 	Board[T]
-	Render(dimensions BoardDimensions) image.Image
+	Render() image.Image
 }
 
 // AnimatedBoard is an interface for a board which displays a pre-rendered animated image.
 // If a board needs to update while it's being shown, then it should implement DynamicBoard instead.
 type AnimatedBoard[T any] interface {
 	Board[T]
-	Render(dimensions BoardDimensions) Animation
+	Render() Animation
 }
 
 // DynamicBoard is an interface for a board which displays content that may change while the board
@@ -55,7 +58,7 @@ type AnimatedBoard[T any] interface {
 // AnimatedBoard instead.
 type DynamicBoard[T any] interface {
 	Board[T]
-	Render(dimensions BoardDimensions) AnimationFrame
+	Render() AnimationFrame
 }
 
 // Animation is an array of AnimationFrame that can be played on a board

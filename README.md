@@ -1,54 +1,28 @@
 # udb-plugin-library
 
-Interface contracts for [UDB (Universal Display Board)](https://github.com/benwiebe/udb-core) plugins. This library defines what every plugin must implement — it contains no logic, only types and interfaces.
+Interface library for UDB (Universal Display Board) plugins. Import this in your plugin to get the type definitions required by `udb-core`.
 
-## Usage
+## Key Interfaces
 
-Add it as a dependency in your plugin module:
+### Board
 
-```bash
-go get github.com/benwiebe/udb-plugin-library
-```
+Boards render content to the display. Every board implements the base `Board[T]` interface plus one of three render interfaces:
 
-## What's In Here
+| Type | Interface | Render returns | Use when |
+|------|-----------|---------------|----------|
+| `BoardTypeStatic` | `StaticBoard[T]` | `image.Image` | Fixed image; no updates while displayed |
+| `BoardTypeAnimated` | `AnimatedBoard[T]` | `[]AnimationFrame` | Pre-baked frame sequence |
+| `BoardTypeDynamic` | `DynamicBoard[T]` | `AnimationFrame` | Live-updating data (clocks, scores) |
 
-| Package | Contents |
-|---------|----------|
-| Root package | `UdbPlugin`, `UdbBoardPlugin`, `UdbDatasourcePlugin`, `UdbCombinedPlugin` interfaces |
-| `types` | `Board[T]`, `StaticBoard[T]`, `AnimatedBoard[T]`, `DynamicBoard[T]`, `Datasource[T]`, `BoardDimensions`, `AnimationFrame`, `PluginType`, `BoardType`, `PluginConfig` |
+`Init(config, datasource, dimensions)` is called once at startup. Boards should pre-compute any layout values that depend on display dimensions here. `Render()` takes no parameters.
 
-## Writing a Plugin
+### Datasource
 
-See the [Plugin Authoring Guide](https://github.com/benwiebe/udb-core/blob/main/docs/PLUGIN_AUTHORING.md) in `udb-core` for a complete walkthrough, including examples, build instructions, and config wiring.
+Datasources provide data to boards. `GetData()` must always return immediately — it is called on the render path.
 
-## Interface Summary
+`Start(ctx)` is called at startup so datasources can launch background fetch goroutines. The goroutine should exit when `ctx` is cancelled. `DataChanged()` returns a channel the datasource can signal to trigger an immediate re-render; return `nil` for no push notifications.
 
-```go
-// Every plugin exports a Plugin variable of this type.
-type UdbPlugin interface {
-    GetId() string
-    GetName() string
-    GetPluginType() types.PluginType
-    Configure(config types.PluginConfig) error
-}
+## See Also
 
-// Implement this to provide boards.
-type UdbBoardPlugin interface {
-    UdbPlugin
-    GetBoardMap() map[string]types.Board[any]
-    GetAllBoards() []types.Board[any]
-}
-
-// Implement this to provide datasources.
-type UdbDatasourcePlugin interface {
-    UdbPlugin
-    GetDatasourceMap() map[string]types.Datasource[any]
-    GetAllDatasources() []types.Datasource[any]
-}
-
-// Implement this to provide both.
-type UdbCombinedPlugin interface {
-    UdbBoardPlugin
-    UdbDatasourcePlugin
-}
-```
+- [udb-core](https://github.com/benwiebe/udb-core) — the runtime and plugin authoring guide (`docs/PLUGIN_AUTHORING.md`)
+- [udb-plugin-samples](https://github.com/benwiebe/udb-plugin-samples) — reference implementations
