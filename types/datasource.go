@@ -3,7 +3,7 @@ package types
 import "context"
 
 // Datasource is an interface for a datasource that will be provided by a plugin.
-type Datasource[T any] interface {
+type Datasource interface {
 	GetId() string
 	GetName() string
 	// GetType returns the type identifier for the data this datasource provides.
@@ -11,7 +11,7 @@ type Datasource[T any] interface {
 	// e.g. "benwiebe/nhl-plugin/game-data". A board's GetDatasourceType() must
 	// match the datasource's GetType() for them to be compatible.
 	GetType() string
-	GetData() T
+	GetData() any
 	// Start is called once at startup. Datasources that poll external sources should
 	// start their background goroutine here and stop it when ctx is cancelled.
 	Start(ctx context.Context) error

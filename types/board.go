@@ -25,7 +25,7 @@ type BoardDimensions struct {
 // Board is an interface for all boards' common methods. Board and its related interfaces
 // are used to describe the different types of boards that are provided by a plugin and
 // which can be displayed on the screen.
-type Board[T any] interface {
+type Board interface {
 	GetId() string
 	GetName() string
 	GetSupportedDimensions() []BoardDimensions
@@ -37,27 +37,27 @@ type Board[T any] interface {
 	// Init is called once at startup. config is the board's JSON config block, datasource is the
 	// wired datasource (may be nil), and dimensions are the display dimensions for the run.
 	// Boards should use dimensions to pre-compute layout and cache any derived values here.
-	Init(config json.RawMessage, datasource Datasource[T], dimensions BoardDimensions) error
+	Init(config json.RawMessage, datasource Datasource, dimensions BoardDimensions) error
 }
 
 // StaticBoard is an interface for a board which displays a static image
-type StaticBoard[T any] interface {
-	Board[T]
+type StaticBoard interface {
+	Board
 	Render() image.Image
 }
 
 // AnimatedBoard is an interface for a board which displays a pre-rendered animated image.
 // If a board needs to update while it's being shown, then it should implement DynamicBoard instead.
-type AnimatedBoard[T any] interface {
-	Board[T]
+type AnimatedBoard interface {
+	Board
 	Render() Animation
 }
 
 // DynamicBoard is an interface for a board which displays content that may change while the board
 // is being shown. If the board does not need to update while it's being shown, then it should implement
 // AnimatedBoard instead.
-type DynamicBoard[T any] interface {
-	Board[T]
+type DynamicBoard interface {
+	Board
 	Render() AnimationFrame
 }
 

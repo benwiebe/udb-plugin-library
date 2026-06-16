@@ -8,7 +8,6 @@ import (
 type UdbPlugin interface {
 	GetId() string
 	GetName() string
-	GetPluginType() types.PluginType
 	Configure(config types.PluginConfig) error
 }
 
@@ -16,16 +15,14 @@ type UdbPlugin interface {
 // does not provide any datasources.
 type UdbBoardPlugin interface {
 	UdbPlugin
-	GetBoardMap() map[string]types.Board[any]
-	GetAllBoards() []types.Board[any]
+	GetBoardMap() map[string]types.Board
 }
 
 // UdbDatasourcePlugin is an interface describing a plugin which only provides datasources but
 // does not provide any boards.
 type UdbDatasourcePlugin interface {
 	UdbPlugin
-	GetDatasourceMap() map[string]types.Datasource[any]
-	GetAllDatasources() []types.Datasource[any]
+	GetDatasourceMap() map[string]types.Datasource
 }
 
 // UdbCombinedPlugin is an interface describing a plugin which provides both boards and datasources.
