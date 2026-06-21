@@ -2,6 +2,11 @@ package types
 
 import "context"
 
+// DatasourceFactory is a constructor that returns a fresh Datasource instance.
+// Plugins return these from GetDatasourceMap() so the core can create one instance
+// per datasource config entry.
+type DatasourceFactory = func() Datasource
+
 // Datasource is an interface for a datasource that will be provided by a plugin.
 type Datasource interface {
 	GetId() string

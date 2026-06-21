@@ -22,6 +22,12 @@ type BoardDimensions struct {
 	Height int
 }
 
+// BoardFactory is a constructor that returns a fresh Board instance.
+// Plugins return these from GetBoardMap() so the core can create one instance per
+// board config entry — enabling multiple configs to reference the same board type
+// with different settings.
+type BoardFactory = func() Board
+
 // Board is an interface for all boards' common methods. Board and its related interfaces
 // are used to describe the different types of boards that are provided by a plugin and
 // which can be displayed on the screen.

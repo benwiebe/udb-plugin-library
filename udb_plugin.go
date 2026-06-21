@@ -15,14 +15,14 @@ type UdbPlugin interface {
 // does not provide any datasources.
 type UdbBoardPlugin interface {
 	UdbPlugin
-	GetBoardMap() map[string]types.Board
+	GetBoardMap() map[string]types.BoardFactory
 }
 
 // UdbDatasourcePlugin is an interface describing a plugin which only provides datasources but
 // does not provide any boards.
 type UdbDatasourcePlugin interface {
 	UdbPlugin
-	GetDatasourceMap() map[string]types.Datasource
+	GetDatasourceMap() map[string]types.DatasourceFactory
 }
 
 // UdbCombinedPlugin is an interface describing a plugin which provides both boards and datasources.
