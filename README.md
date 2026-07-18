@@ -20,7 +20,7 @@ Boards render content to the display. Every board implements the base `Board` in
 
 Datasources provide data to boards. `GetData() any` must always return immediately — it is called on the render path. Do the type assertion once in `Init()` and store the concrete type rather than asserting on every `Render()` call.
 
-`Start(ctx)` is called at startup so datasources can launch background fetch goroutines. The goroutine should exit when `ctx` is cancelled. `DataChanged()` returns a channel the datasource can signal to trigger an immediate re-render; return `nil` for no push notifications.
+`Init(config)` is called after the datasource instance is constructed so it can parse its own JSON config. `Start(ctx)` is called at startup so datasources can launch background fetch goroutines. The goroutine should exit when `ctx` is cancelled. `DataChanged()` returns a channel the datasource can signal to trigger an immediate re-render; return `nil` for no push notifications.
 
 ### Plugin Registration
 

@@ -1,6 +1,9 @@
 package types
 
-import "context"
+import (
+	"context"
+	"encoding/json"
+)
 
 // DatasourceFactory is a constructor that returns a fresh Datasource instance.
 // Plugins return these from GetDatasourceMap() so the core can create one instance
@@ -16,6 +19,10 @@ type Datasource interface {
 	// e.g. "benwiebe/nhl-plugin/game-data". A board's GetDatasourceType() must
 	// match the datasource's GetType() for them to be compatible.
 	GetType() string
+	// Init is called once after the datasource is constructed and before Start.
+	// Use it to parse the datasource's JSON config and initialize any clients or
+	// immutable settings needed by the background refresh loop.
+	Init(config json.RawMessage) error
 	GetData() any
 	// Start is called once at startup. Datasources that poll external sources should
 	// start their background goroutine here and stop it when ctx is cancelled.
