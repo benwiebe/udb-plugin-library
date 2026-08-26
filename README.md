@@ -24,10 +24,12 @@ Datasources provide data to boards. `GetData() any` must always return immediate
 
 ## Fonts
 
-The library also includes a `fonts` package with a small embedded font set intended for LED matrix and other low-resolution text rendering.
+The library also includes a `fonts` package for LED matrix and other low-resolution text rendering.
 
-- `Micro 5`, `Jersey 10`, and `Jersey 15` are used for small display sizes.
-- `Montserrat-Medium` is used as the general-purpose larger font.
+- `FitPixelFace(text, maxWidth, maxHeight, PixelFontAuto)` returns a hard-edged bitmap face scaled to fit the target rectangle.
+- `PixelFontAuto` selects scoreboard-style numerals for numeric text such as clocks and scores, and a dot-matrix text face for general labels.
+- The bitmap faces implement `golang.org/x/image/font.Face`, so plugin authors can use `font.MeasureString` and `font.Drawer` normally.
+- The older TrueType helpers remain available for boards that explicitly want outline fonts, but they are no longer the preferred path for pixel-board UI text.
 - Third-party font license texts are included under `fonts/assets/*/OFL.txt`.
 
 Only the font files currently used by the package are bundled, to keep module size down.

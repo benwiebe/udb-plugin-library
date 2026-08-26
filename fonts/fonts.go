@@ -6,7 +6,10 @@ import (
 	"github.com/golang/freetype/truetype"
 )
 
-//go:embed assets
+// Embed the fonts exposed by the helper API. License text stays in the repo,
+// but it is not bundled into the Go binary.
+//
+//go:embed assets/VT323/VT323-Regular.ttf assets/Pixelify_Sans/PixelifySans-Regular.ttf assets/Silkscreen/Silkscreen-Regular.ttf assets/Montserrat/Montserrat-Medium.ttf
 var fontAssets embed.FS
 
 /*
@@ -14,9 +17,9 @@ UdbFonts is a struct that holds references to various fonts and helpers
 which are useful for rendering text on a pixel board display.
 */
 type UdbFonts struct {
-	micro5     *truetype.Font
-	jersey10   *truetype.Font
-	jersey15   *truetype.Font
+	vt323      *truetype.Font
+	pixelify   *truetype.Font
+	silkscreen *truetype.Font
 	montserrat *truetype.Font
 }
 
@@ -31,14 +34,15 @@ func GetUdbFonts() *UdbFonts {
 }
 
 /*
-Micro5 returns the Micro 5 font, which is designed as 5px tall.
+VT323 returns the VT323 font, which works well at very small sizes and has a
+terminal-like pixel style.
 */
-func (f *UdbFonts) Micro5() *truetype.Font {
-	if f.micro5 != nil {
-		return f.micro5
+func (f *UdbFonts) VT323() *truetype.Font {
+	if f.vt323 != nil {
+		return f.vt323
 	}
 
-	fontBytes, err := fontAssets.ReadFile("assets/Micro_5/Micro5-Regular.ttf")
+	fontBytes, err := fontAssets.ReadFile("assets/VT323/VT323-Regular.ttf")
 	if err != nil {
 		panic(err)
 	}
@@ -47,19 +51,21 @@ func (f *UdbFonts) Micro5() *truetype.Font {
 		panic(err)
 	}
 
-	f.micro5 = font
+	f.vt323 = font
 	return font
 }
 
 /*
-Jersey10 returns the Jersey 10 font, which is designed as 10px tall.
+PixelifySans returns the Pixelify Sans regular font. It is available for boards
+that want the style explicitly, but it is not selected by FontForSize because it
+gets muddy when dense text is squeezed onto small pixel boards.
 */
-func (f *UdbFonts) Jersey10() *truetype.Font {
-	if f.jersey10 != nil {
-		return f.jersey10
+func (f *UdbFonts) PixelifySans() *truetype.Font {
+	if f.pixelify != nil {
+		return f.pixelify
 	}
 
-	fontBytes, err := fontAssets.ReadFile("assets/Jersey_10/Jersey10-Regular.ttf")
+	fontBytes, err := fontAssets.ReadFile("assets/Pixelify_Sans/PixelifySans-Regular.ttf")
 	if err != nil {
 		panic(err)
 	}
@@ -68,19 +74,21 @@ func (f *UdbFonts) Jersey10() *truetype.Font {
 		panic(err)
 	}
 
-	f.jersey10 = font
+	f.pixelify = font
 	return font
 }
 
 /*
-Jersey15 returns the Jersey 15 font, which is designed as 15px tall.
+Silkscreen returns the Silkscreen regular font. It is available for boards that
+want the style explicitly, but its stencil-like shapes are not a good default
+for dense text on small pixel boards.
 */
-func (f *UdbFonts) Jersey15() *truetype.Font {
-	if f.jersey15 != nil {
-		return f.jersey15
+func (f *UdbFonts) Silkscreen() *truetype.Font {
+	if f.silkscreen != nil {
+		return f.silkscreen
 	}
 
-	fontBytes, err := fontAssets.ReadFile("assets/Jersey_15/Jersey15-Regular.ttf")
+	fontBytes, err := fontAssets.ReadFile("assets/Silkscreen/Silkscreen-Regular.ttf")
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +97,7 @@ func (f *UdbFonts) Jersey15() *truetype.Font {
 		panic(err)
 	}
 
-	f.jersey15 = font
+	f.silkscreen = font
 	return font
 }
 
@@ -119,12 +127,8 @@ FontForSize returns an appropriate font based on the given size. The font
 should render nicely on a pixel board display.
 */
 func (f *UdbFonts) FontForSize(size int) *truetype.Font {
-	if size <= 8 {
-		return f.Micro5()
-	} else if size <= 12 {
-		return f.Jersey10()
-	} else if size <= 18 {
-		return f.Jersey15()
+	if size <= 18 {
+		return f.VT323()
 	}
 
 	return f.Montserrat()
