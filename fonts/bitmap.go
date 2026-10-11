@@ -9,17 +9,30 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+// PixelFontStyle selects a hard-edged bitmap font.
 type PixelFontStyle int
 
 const (
+	// PixelFontAuto lets FitPixelFace choose a style from the text and bounds.
 	PixelFontAuto PixelFontStyle = iota
+	// PixelFontDotMatrix is a 5×7 uppercase text font.
 	PixelFontDotMatrix
+	// PixelFontScoreboard is a 3×7 seven-segment numeric font.
 	PixelFontScoreboard
+	// PixelFontCondensed is a 3×5 uppercase text font for small rectangles.
+	PixelFontCondensed
 )
 
+// PixelFaceOptions configures a bitmap face.
 type PixelFaceOptions struct {
-	Style         PixelFontStyle
-	Scale         int
+	// Style selects the font. PixelFontAuto uses PixelFontDotMatrix here;
+	// use FitPixelFace to select a style from the text and available space.
+	Style PixelFontStyle
+	// Scale is an integer pixel multiplier, clamped to at least 1.
+	Scale int
+	// LetterSpacing is an extra gap in unscaled pixels after each glyph,
+	// including the last. A negative value uses the font's default spacing;
+	// zero packs glyphs together without an extra gap.
 	LetterSpacing int
 }
 
@@ -43,16 +56,15 @@ type bitmapFace struct {
 	useDefaultSpacing bool
 }
 
+// PixelFace returns a bitmap face using the requested style, scale, and spacing.
+// Text faces map ASCII lowercase letters to uppercase; unsupported runes use ?.
 func (f *UdbFonts) PixelFace(opts PixelFaceOptions) font.Face {
 	scale := opts.Scale
 	if scale < 1 {
 		scale = 1
 	}
 
-	bf := dotMatrix5x7Font()
-	if opts.Style == PixelFontScoreboard {
-		bf = scoreboard7SegmentFont()
-	}
+	bf := bitmapFontForStyle(opts.Style)
 
 	letterSpacing := opts.LetterSpacing
 	useDefaultSpacing := false
@@ -69,15 +81,17 @@ func (f *UdbFonts) PixelFace(opts PixelFaceOptions) font.Face {
 	}
 }
 
+// FitPixelFace returns the largest integer-scaled face that fits the text within
+// maxWidth and maxHeight, using default letter spacing. PixelFontAuto selects a
+// style from the text and bounds. Explicit styles never fall back. If the text
+// cannot fit even at scale 1, the returned face remains at scale 1; callers can
+// measure it to decide whether to wrap, clip, or shorten the text.
 func (f *UdbFonts) FitPixelFace(text string, maxWidth, maxHeight int, style PixelFontStyle) font.Face {
 	if style == PixelFontAuto {
-		style = PixelFontStyleForText(text)
+		style = PixelFontStyleForTextBounds(text, maxWidth, maxHeight)
 	}
 
-	bf := dotMatrix5x7Font()
-	if style == PixelFontScoreboard {
-		bf = scoreboard7SegmentFont()
-	}
+	bf := bitmapFontForStyle(style)
 
 	scale := 1
 	for candidate := 1; candidate <= maxHeight; candidate++ {
@@ -92,12 +106,39 @@ func (f *UdbFonts) FitPixelFace(text string, maxWidth, maxHeight int, style Pixe
 	return &bitmapFace{font: bf, scale: scale, useDefaultSpacing: true}
 }
 
+// PixelFontStyleForText selects scoreboard for digits with numeric separators,
+// and dot-matrix for other text, without considering available space.
 func PixelFontStyleForText(text string) PixelFontStyle {
 	if isScoreboardText(text) {
 		return PixelFontScoreboard
 	}
 
 	return PixelFontDotMatrix
+}
+
+// PixelFontStyleForTextBounds selects the preferred text style, falling back to
+// condensed if that style exceeds either bound at scale 1 with default spacing.
+// Condensed is returned even if the text cannot fit in the supplied bounds.
+func PixelFontStyleForTextBounds(text string, maxWidth, maxHeight int) PixelFontStyle {
+	style := PixelFontStyleForText(text)
+	face := &bitmapFace{font: bitmapFontForStyle(style), scale: 1, useDefaultSpacing: true}
+	metrics := face.Metrics()
+	if font.MeasureString(face, text).Ceil() > maxWidth || (metrics.Ascent+metrics.Descent).Ceil() > maxHeight {
+		return PixelFontCondensed
+	}
+
+	return style
+}
+
+func bitmapFontForStyle(style PixelFontStyle) bitmapFont {
+	switch style {
+	case PixelFontScoreboard:
+		return scoreboard7SegmentFont()
+	case PixelFontCondensed:
+		return condensed3x5Font()
+	default:
+		return dotMatrix5x7Font()
+	}
 }
 
 func (f *bitmapFace) Glyph(dot fixed.Point26_6, r rune) (image.Rectangle, image.Image, image.Point, fixed.Int26_6, bool) {
@@ -252,7 +293,7 @@ func dotMatrix5x7Font() bitmapFont {
 			'-':  glyph("00000", "00000", "00000", "11111", "00000", "00000", "00000"),
 			'.':  glyph("0", "0", "0", "0", "0", "0", "1"),
 			'/':  glyph("00001", "00010", "00100", "01000", "10000", "00000", "00000"),
-			':':  glyph("0", "1", "0", "0", "0", "1", "0"),
+			':':  glyph("000", "010", "000", "000", "000", "010", "000"),
 			';':  glyph("0", "1", "0", "0", "0", "1", "1"),
 			'?':  glyph("01110", "10001", "00001", "00010", "00100", "00000", "00100"),
 			'0':  glyph("01110", "10001", "10011", "10101", "11001", "10001", "01110"),
@@ -303,7 +344,7 @@ func scoreboard7SegmentFont() bitmapFont {
 		scoreboard:   true,
 		glyphs: map[rune]bitmapGlyph{
 			' ': glyph("000", "000", "000", "000", "000", "000", "000"),
-			':': glyph("0", "1", "1", "0", "1", "1", "0"),
+			':': glyph("000", "010", "010", "000", "010", "010", "000"),
 			'.': glyph("0", "0", "0", "0", "0", "0", "1"),
 			'-': glyph("000", "000", "000", "111", "000", "000", "000"),
 			'/': glyph("001", "001", "010", "010", "100", "100", "000"),
@@ -319,6 +360,71 @@ func scoreboard7SegmentFont() bitmapFont {
 			'7': glyph("111", "001", "001", "010", "010", "100", "100"),
 			'8': glyph("111", "101", "101", "111", "101", "101", "111"),
 			'9': glyph("111", "101", "101", "111", "001", "001", "111"),
+		},
+	}
+}
+
+func condensed3x5Font() bitmapFont {
+	return bitmapFont{
+		height:        5,
+		defaultWidth:  3,
+		defaultGap:    1,
+		uppercaseOnly: true,
+		glyphs: map[rune]bitmapGlyph{
+			' ':  glyph("0", "0", "0", "0", "0"),
+			'!':  glyph("1", "1", "1", "0", "1"),
+			'"':  glyph("101", "101", "000", "000", "000"),
+			'#':  glyph("101", "111", "101", "111", "101"),
+			'%':  glyph("101", "001", "010", "100", "101"),
+			'&':  glyph("010", "101", "010", "101", "011"),
+			'\'': glyph("1", "1", "0", "0", "0"),
+			'(':  glyph("01", "10", "10", "10", "01"),
+			')':  glyph("10", "01", "01", "01", "10"),
+			'*':  glyph("101", "010", "111", "010", "101"),
+			'+':  glyph("000", "010", "111", "010", "000"),
+			',':  glyph("0", "0", "0", "1", "1"),
+			'-':  glyph("000", "000", "111", "000", "000"),
+			'.':  glyph("0", "0", "0", "0", "1"),
+			'/':  glyph("001", "001", "010", "100", "100"),
+			':':  glyph("0", "1", "0", "1", "0"),
+			';':  glyph("0", "1", "0", "1", "1"),
+			'?':  glyph("110", "001", "010", "000", "010"),
+			'0':  glyph("111", "101", "101", "101", "111"),
+			'1':  glyph("010", "110", "010", "010", "111"),
+			'2':  glyph("111", "001", "111", "100", "111"),
+			'3':  glyph("111", "001", "111", "001", "111"),
+			'4':  glyph("101", "101", "111", "001", "001"),
+			'5':  glyph("111", "100", "111", "001", "111"),
+			'6':  glyph("111", "100", "111", "101", "111"),
+			'7':  glyph("111", "001", "010", "100", "100"),
+			'8':  glyph("111", "101", "111", "101", "111"),
+			'9':  glyph("111", "101", "111", "001", "111"),
+			'A':  glyph("010", "101", "111", "101", "101"),
+			'B':  glyph("110", "101", "110", "101", "110"),
+			'C':  glyph("011", "100", "100", "100", "011"),
+			'D':  glyph("110", "101", "101", "101", "110"),
+			'E':  glyph("111", "100", "110", "100", "111"),
+			'F':  glyph("111", "100", "110", "100", "100"),
+			'G':  glyph("011", "100", "101", "101", "011"),
+			'H':  glyph("101", "101", "111", "101", "101"),
+			'I':  glyph("111", "010", "010", "010", "111"),
+			'J':  glyph("001", "001", "001", "101", "010"),
+			'K':  glyph("101", "101", "110", "101", "101"),
+			'L':  glyph("100", "100", "100", "100", "111"),
+			'M':  glyph("101", "111", "111", "101", "101"),
+			'N':  glyph("101", "111", "111", "111", "101"),
+			'O':  glyph("111", "101", "101", "101", "111"),
+			'P':  glyph("110", "101", "110", "100", "100"),
+			'Q':  glyph("111", "101", "101", "111", "001"),
+			'R':  glyph("110", "101", "110", "101", "101"),
+			'S':  glyph("011", "100", "010", "001", "110"),
+			'T':  glyph("111", "010", "010", "010", "010"),
+			'U':  glyph("101", "101", "101", "101", "111"),
+			'V':  glyph("101", "101", "101", "101", "010"),
+			'W':  glyph("101", "101", "111", "111", "101"),
+			'X':  glyph("101", "101", "010", "101", "101"),
+			'Y':  glyph("101", "101", "010", "010", "010"),
+			'Z':  glyph("111", "001", "010", "100", "111"),
 		},
 	}
 }

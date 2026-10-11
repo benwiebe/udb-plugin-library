@@ -27,10 +27,21 @@ Datasources provide data to boards. `GetData() any` must always return immediate
 The library also includes a `fonts` package for LED matrix and other low-resolution text rendering.
 
 - `FitPixelFace(text, maxWidth, maxHeight, PixelFontAuto)` returns a hard-edged bitmap face scaled to fit the target rectangle.
-- `PixelFontAuto` selects scoreboard-style numerals for numeric text such as clocks and scores, and a dot-matrix text face for general labels.
+- `PixelFontAuto` selects 3×7 scoreboard-style numerals for numeric text such as clocks and scores, and a 5×7 dot-matrix face for general labels. If the preferred face exceeds either bound at scale 1, it falls back to the 3×5 `PixelFontCondensed` face.
+- `PixelFontStyleForTextBounds(text, maxWidth, maxHeight)` exposes that choice for custom layouts. `PixelFontStyleForText(text)` selects only by text, without considering bounds.
+- `PixelFace(PixelFaceOptions{Style: PixelFontCondensed, Scale: 2, LetterSpacing: -1})` creates an explicitly styled face. Scale is an integer multiplier (minimum 1); negative letter spacing uses the font default, zero removes the gap, and positive values add that many unscaled pixels after every glyph, including the last. `PixelFace` treats `PixelFontAuto` as dot-matrix because it has no text or bounds to inspect.
+- `FitPixelFace` uses default spacing and the largest integer scale that fits. Explicit styles never fall back. When no face fits at scale 1, it still returns a scale-1 face: measure the result before deciding to wrap, clip, or shorten the text.
+- Colons and spaces have matching advances in all bitmap styles, so replacing `:` with a space for blinking keeps the text width and subsequent glyph positions stable.
+- Text faces map ASCII lowercase letters to uppercase. Unsupported characters render as `?`.
 - The bitmap faces implement `golang.org/x/image/font.Face`, so plugin authors can use `font.MeasureString` and `font.Drawer` normally.
 - The older TrueType helpers remain available for boards that explicitly want outline fonts, but they are no longer the preferred path for pixel-board UI text.
 - Third-party font license texts are included under `fonts/assets/*/OFL.txt`.
+
+The bitmap APIs above are available starting in **v0.7.0**. Plugins can select that version with:
+
+```sh
+go get github.com/benwiebe/udb-plugin-library@v0.7.0
+```
 
 Only the font files currently used by the package are bundled, to keep module size down.
 
