@@ -188,3 +188,101 @@ func TestCondensedGlyphRendering(t *testing.T) {
 		}
 	}
 }
+
+func TestBoldPixelFacesRenderFullTextAtIntegerScales(t *testing.T) {
+	for _, style := range []PixelFontStyle{PixelFontSilkscreenBold, PixelFontPixelifySansBold} {
+		t.Run(fmt.Sprintf("style=%d", style), func(t *testing.T) {
+			one := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: 1, LetterSpacing: -1})
+			defer one.Close()
+			two := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: 2, LetterSpacing: -1})
+			defer two.Close()
+
+			if two.Metrics().Height != one.Metrics().Height*2 {
+				t.Fatalf("scale 2 height %v, want twice scale 1 height %v", two.Metrics().Height, one.Metrics().Height)
+			}
+			if font.MeasureString(one, "N N").Ceil() <= font.MeasureString(one, "NN").Ceil() {
+				t.Fatal("space does not advance between glyphs")
+			}
+
+			for _, r := range []rune{'N', 'n', '8', ':'} {
+				bounds, mask, _, _, ok := one.Glyph(fixed.P(0, one.Metrics().Ascent.Ceil()), r)
+				if !ok || bounds.Empty() || mask == nil {
+					t.Fatalf("glyph %q is missing: bounds=%v", r, bounds)
+				}
+				for y := 0; y < mask.Bounds().Dy(); y++ {
+					for x := 0; x < mask.Bounds().Dx(); x++ {
+						alpha := color.AlphaModel.Convert(mask.At(x, y)).(color.Alpha).A
+						if alpha != 0 && alpha != 255 {
+							t.Fatalf("glyph %q contains a non-binary pixel at (%d,%d): %d", r, x, y, alpha)
+						}
+					}
+				}
+				if r != 'N' {
+					continue
+				}
+
+				doubledBounds, doubledMask, _, _, ok := two.Glyph(fixed.P(0, two.Metrics().Ascent.Ceil()), r)
+				if !ok || doubledBounds.Dx() != bounds.Dx()*2 || doubledBounds.Dy() != bounds.Dy()*2 {
+					t.Fatalf("scale 2 N bounds %v, want twice %v", doubledBounds, bounds)
+				}
+				for y := 0; y < mask.Bounds().Dy(); y++ {
+					for x := 0; x < mask.Bounds().Dx(); x++ {
+						want := color.AlphaModel.Convert(mask.At(x, y)).(color.Alpha).A
+						for sy := 0; sy < 2; sy++ {
+							for sx := 0; sx < 2; sx++ {
+								got := color.AlphaModel.Convert(doubledMask.At(x*2+sx, y*2+sy)).(color.Alpha).A
+								if got != want {
+									t.Fatalf("scale 2 changed a pixel block at (%d,%d)", x, y)
+								}
+							}
+						}
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestBoldPixelFaceSpacingAndFit(t *testing.T) {
+	for _, style := range []PixelFontStyle{PixelFontSilkscreenBold, PixelFontPixelifySansBold} {
+		t.Run(fmt.Sprintf("style=%d", style), func(t *testing.T) {
+			defaultSpacing := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: 2, LetterSpacing: -1})
+			defer defaultSpacing.Close()
+			packed := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: 2, LetterSpacing: 0})
+			defer packed.Close()
+			spaced := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: 2, LetterSpacing: 1})
+			defer spaced.Close()
+
+			if got, want := font.MeasureString(defaultSpacing, "Nn8"), font.MeasureString(packed, "Nn8"); got != want {
+				t.Fatalf("default and zero extra spacing differ: %v != %v", got, want)
+			}
+			if got, want := font.MeasureString(spaced, "Nn8")-font.MeasureString(packed, "Nn8"), fixed.I(6); got != want {
+				t.Fatalf("positive spacing adds %v, want %v", got, want)
+			}
+
+			face := GetUdbFonts().FitPixelFace("Nn8:04", 128, 64, style)
+			defer face.Close()
+			boldFace, ok := face.(*boldPixelFontFace)
+			if !ok || boldFace.scale < 1 {
+				t.Fatalf("fit returned %T with invalid scale", face)
+			}
+			if got := font.MeasureString(face, "Nn8:04").Ceil(); got > 128 {
+				t.Fatalf("fitted line width %d exceeds 128", got)
+			}
+			if got := face.Metrics().Height.Ceil(); got > 64 {
+				t.Fatalf("fitted line height %d exceeds 64", got)
+			}
+			nextScale := GetUdbFonts().PixelFace(PixelFaceOptions{Style: style, Scale: boldFace.scale + 1})
+			defer nextScale.Close()
+			if font.MeasureString(nextScale, "Nn8:04").Ceil() <= 128 && nextScale.Metrics().Height.Ceil() <= 64 {
+				t.Fatalf("fit stopped at scale %d although scale %d also fits", boldFace.scale, boldFace.scale+1)
+			}
+
+			fallback := GetUdbFonts().FitPixelFace("N", 1, 1, style)
+			defer fallback.Close()
+			if fallback.(*boldPixelFontFace).scale != 1 {
+				t.Fatalf("impossible bounds returned scale %d, want scale 1", fallback.(*boldPixelFontFace).scale)
+			}
+		})
+	}
+}

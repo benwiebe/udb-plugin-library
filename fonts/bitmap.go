@@ -21,6 +21,10 @@ const (
 	PixelFontScoreboard
 	// PixelFontCondensed is a 3×5 uppercase text font for small rectangles.
 	PixelFontCondensed
+	// PixelFontSilkscreenBold is the bold Silkscreen full-text font.
+	PixelFontSilkscreenBold
+	// PixelFontPixelifySansBold is the bold Pixelify Sans full-text font.
+	PixelFontPixelifySansBold
 )
 
 // PixelFaceOptions configures a bitmap face.
@@ -63,6 +67,9 @@ func (f *UdbFonts) PixelFace(opts PixelFaceOptions) font.Face {
 	if scale < 1 {
 		scale = 1
 	}
+	if isBoldPixelFontStyle(opts.Style) {
+		return newBoldPixelFontFace(opts.Style, scale, opts.LetterSpacing)
+	}
 
 	bf := bitmapFontForStyle(opts.Style)
 
@@ -89,6 +96,9 @@ func (f *UdbFonts) PixelFace(opts PixelFaceOptions) font.Face {
 func (f *UdbFonts) FitPixelFace(text string, maxWidth, maxHeight int, style PixelFontStyle) font.Face {
 	if style == PixelFontAuto {
 		style = PixelFontStyleForTextBounds(text, maxWidth, maxHeight)
+	}
+	if isBoldPixelFontStyle(style) {
+		return fitBoldPixelFontFace(style, text, maxWidth, maxHeight)
 	}
 
 	bf := bitmapFontForStyle(style)

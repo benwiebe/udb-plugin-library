@@ -9,7 +9,7 @@ import (
 // Embed the fonts exposed by the helper API. License text stays in the repo,
 // but it is not bundled into the Go binary.
 //
-//go:embed assets/VT323/VT323-Regular.ttf assets/Pixelify_Sans/PixelifySans-Regular.ttf assets/Silkscreen/Silkscreen-Regular.ttf assets/Montserrat/Montserrat-Medium.ttf
+//go:embed assets/VT323/VT323-Regular.ttf assets/Pixelify_Sans/PixelifySans-Regular.ttf assets/Pixelify_Sans/PixelifySans-Bold.ttf assets/Silkscreen/Silkscreen-Regular.ttf assets/Silkscreen/Silkscreen-Bold.ttf assets/Montserrat/Montserrat-Medium.ttf
 var fontAssets embed.FS
 
 /*
